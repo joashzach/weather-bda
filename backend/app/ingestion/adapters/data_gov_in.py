@@ -9,7 +9,12 @@ from app.core.enums import MeasurementBasis, RecordKind
 from app.core.http_client import SafeHttpClient
 from app.core.logging import get_logger
 from app.db.models.data_sources import DataSource
-from app.ingestion.adapters.base import AdapterResult, BaseAdapter, TargetError
+from app.ingestion.adapters.base import (
+    AdapterResult,
+    BaseAdapter,
+    TargetError,
+    sanitize_error_text,
+)
 from app.ingestion.normalizers import (
     NormalizedWeatherRecord,
     compute_content_hash,
@@ -84,7 +89,19 @@ class DataGovInAdapter(BaseAdapter):
                     TargetError(
                         target_key=resource_id,
                         error_code="http_fetch_error",
-                        message=f"Failed to fetch data.gov.in resource: {exc}"[:1000],
+                        message=sanitize_error_text(f"Failed to fetch data.gov.in resource: {exc}"),
+                    )
+                ],
+                failed_count=1,
+            )
+
+        if not isinstance(payload, dict) or not isinstance(payload.get("records"), list):
+            return AdapterResult(
+                errors=[
+                    TargetError(
+                        target_key=resource_id,
+                        error_code="response_malformed",
+                        message="Response JSON is missing expected 'records' array",
                     )
                 ],
                 failed_count=1,

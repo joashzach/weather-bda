@@ -128,3 +128,100 @@ def test_data_gov_in_schema_mapping_and_station_matching():
     assert r_mumbai.temperature_c == 31.0  # 304.15 K -> 31.0 C
     assert r_mumbai.precipitation_mm == 12.4
     assert r_mumbai.relative_humidity_pct == 78.0
+
+
+def test_data_gov_in_malformed_response():
+    adapter = DataGovInAdapter()
+    settings = Settings(DATA_GOV_IN_API_KEY="secret_key")
+    source = DataSource(
+        name="dg",
+        config={"resource_id": "res-1", "field_map": {}, "location_match": {}},
+    )
+
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = ["not", "a", "dict"]
+    mock_resp.raise_for_status = MagicMock()
+    mock_client.get.return_value = mock_resp
+
+    res = adapter.run(source, targets=[], http_client=mock_client, settings=settings)
+    assert res.failed_count == 1
+    assert res.errors[0].error_code == "response_malformed"
+
+
+def test_data_gov_in_oversize_response():
+    adapter = DataGovInAdapter()
+    settings = Settings(DATA_GOV_IN_API_KEY="secret_key")
+    source = DataSource(
+        name="dg",
+        config={"resource_id": "res-1", "field_map": {}, "location_match": {}},
+    )
+
+    mock_client = MagicMock()
+    mock_client.get.side_effect = ValueError(
+        "Response exceeds maximum allowed size of 5242880 bytes"
+    )
+
+    res = adapter.run(source, targets=[], http_client=mock_client, settings=settings)
+    assert res.failed_count == 1
+    assert res.errors[0].error_code == "http_fetch_error"
+    assert "exceeds maximum allowed size" in res.errors[0].message
+
+
+def test_data_gov_in_sanitized_errors():
+    import httpx
+
+    adapter = DataGovInAdapter()
+    settings = Settings(DATA_GOV_IN_API_KEY="SECRET_GOV_KEY_12345")
+    source = DataSource(
+        name="dg",
+        config={"resource_id": "res-1", "field_map": {}, "location_match": {}},
+    )
+
+    mock_client = MagicMock()
+    err_url = "https://api.data.gov.in/resource/res-1?api-key=SECRET_GOV_KEY_12345&format=json"
+    mock_client.get.side_effect = httpx.HTTPStatusError(
+        f"403 Forbidden for url: {err_url}",
+        request=MagicMock(url=err_url),
+        response=MagicMock(status_code=403),
+    )
+
+    res = adapter.run(source, targets=[], http_client=mock_client, settings=settings)
+    assert res.failed_count == 1
+    err_msg = res.errors[0].message
+    # API key must NOT be leaked in error message or target key
+    assert "SECRET_GOV_KEY_12345" not in err_msg
+    assert "SECRET_GOV_KEY_12345" not in res.errors[0].target_key
+
+
+def test_data_gov_in_repeated_run_dedup():
+    adapter = DataGovInAdapter()
+    settings = Settings(DATA_GOV_IN_API_KEY="secret_key")
+    delhi = Location(id=1, slug="delhi")
+    source = DataSource(
+        id=5,
+        name="dg",
+        config={
+            "resource_id": "res-1",
+            "field_map": {
+                "station_name": "station",
+                "valid_at": "timestamp",
+                "temperature_c": "temperature_k",
+            },
+            "unit_conversions": {"temperature_c": "kelvin_to_celsius"},
+            "location_match": {"delhi safdarjung": "delhi"},
+        },
+    )
+
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = SAMPLE_DATA_GOV_IN_JSON
+    mock_resp.raise_for_status = MagicMock()
+    mock_client.get.return_value = mock_resp
+
+    res1 = adapter.run(source, targets=[delhi], http_client=mock_client, settings=settings)
+    res2 = adapter.run(source, targets=[delhi], http_client=mock_client, settings=settings)
+
+    assert len(res1.records) == 1
+    assert len(res2.records) == 1
+    assert res1.records[0].content_hash == res2.records[0].content_hash

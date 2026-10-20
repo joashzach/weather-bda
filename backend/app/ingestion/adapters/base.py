@@ -1,5 +1,6 @@
 """Base adapter interface and result structures for ingestion adapters conforming to PRD Section 8.1."""
 
+import re
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -9,6 +10,14 @@ from app.core.config import Settings
 from app.core.http_client import SafeHttpClient
 from app.db.models.data_sources import DataSource
 from app.ingestion.normalizers import NormalizedNewsItem, NormalizedWeatherRecord
+
+QUERY_SECRET_RE = re.compile(r"([?&][\w-]+)=([^&\s'\"]+)", re.IGNORECASE)
+
+
+def sanitize_error_text(msg: str) -> str:
+    """Sanitize error messages so query string parameters, credentials, or tokens are never leaked."""
+    sanitized = QUERY_SECRET_RE.sub(r"\1=[REDACTED]", msg)
+    return sanitized[:1000]
 
 
 class TargetError(BaseModel):

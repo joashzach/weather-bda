@@ -144,3 +144,80 @@ def test_rss_network_error_handled_gracefully():
     assert res.failed_count == 1
     assert len(res.errors) == 1
     assert res.errors[0].error_code == "http_fetch_error"
+
+
+def test_rss_oversize_response_rejected():
+    adapter = RssAtomAdapter()
+    settings = Settings()
+    source = DataSource(
+        id=10,
+        name="rss_imd",
+        config={"feed_url": "https://mausam.imd.gov.in/large.xml", "category": "news"},
+    )
+
+    mock_client = MagicMock()
+    mock_client.get.side_effect = ValueError(
+        "Response exceeds maximum allowed size of 5242880 bytes"
+    )
+
+    res = adapter.run(source, targets=[], http_client=mock_client, settings=settings)
+    assert res.failed_count == 1
+    assert len(res.errors) == 1
+    assert res.errors[0].error_code == "http_fetch_error"
+    assert "exceeds maximum allowed size" in res.errors[0].message
+
+
+def test_rss_sanitized_errors():
+    adapter = RssAtomAdapter()
+    settings = Settings()
+    secret_url = (
+        "https://mausam.imd.gov.in/feed.xml?api_key=SECRET_TOKEN_VALUE_XYZ&token=ANOTHER_SECRET"
+    )
+    source = DataSource(
+        id=10,
+        name="rss_imd",
+        config={"feed_url": secret_url, "category": "news"},
+    )
+
+    mock_client = MagicMock()
+    mock_client.get.side_effect = httpx.HTTPStatusError(
+        "500 Internal Server Error",
+        request=MagicMock(url=secret_url),
+        response=MagicMock(status_code=500),
+    )
+
+    res = adapter.run(source, targets=[], http_client=mock_client, settings=settings)
+    assert res.failed_count == 1
+    err = res.errors[0]
+    # Stored error must NOT leak the secret tokens in target_key or message
+    assert "SECRET_TOKEN_VALUE_XYZ" not in err.message
+    assert "ANOTHER_SECRET" not in err.message
+    assert "SECRET_TOKEN_VALUE_XYZ" not in err.target_key
+    assert "ANOTHER_SECRET" not in err.target_key
+
+
+def test_rss_repeated_run_dedup():
+    adapter = RssAtomAdapter()
+    settings = Settings()
+    source = DataSource(
+        id=10,
+        name="rss_imd",
+        config={"feed_url": "https://mausam.imd.gov.in/feed.xml", "category": "news"},
+    )
+
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.content = SAMPLE_VALID_RSS.encode("utf-8")
+    mock_resp.raise_for_status = MagicMock()
+    mock_client.get.return_value = mock_resp
+
+    # First run
+    res1 = adapter.run(source, targets=[], http_client=mock_client, settings=settings)
+    # Second run with exact same content
+    res2 = adapter.run(source, targets=[], http_client=mock_client, settings=settings)
+
+    assert len(res1.news_records) == len(res2.news_records)
+    # Dedupe keys and content hashes must be identical and deterministic
+    for item1, item2 in zip(res1.news_records, res2.news_records, strict=True):
+        assert item1.dedupe_key == item2.dedupe_key
+        assert item1.content_hash == item2.content_hash

@@ -72,12 +72,12 @@ Open-Meteo returns parallel arrays of hourly predictions covering past days and 
 
 - **Official Provider:** India Meteorological Department (IMD) / Ministry of Earth Sciences, Government of India
 - **Homepage:** https://mausam.imd.gov.in/
-- **Verification Status:** `UNVERIFIED` (Shipped as a disabled source with test fixtures only per Section 8.3 rule)
+- **Verification Status:** `UNVERIFIED` (Shipped as a disabled source with test fixtures only per Section 8.3 rule; `feed_url=None`, `is_enabled=False`, not official)
 - **Trust Level:** `news`
 - **Adapter Key:** `rss`
 
 ### 2.1 Candidate Feed Specifications
-- **Candidate Endpoint:** `https://mausam.imd.gov.in/backend/assets/rss/national_bulletin.xml`
+- **Candidate Endpoint:** None configured by default in seed (`feed_url: None`). Real feed URLs must be verified before configuration via admin API.
 - **Category Check:** `advisory_feed` or `news`
 - **Access Rule:** Bytes are retrieved strictly via SSRF-guarded HTTP client (`SafeHttpClient`). Never pass raw URL directly to `feedparser`.
 - **Parsing Cap:** Maximum 200 entries per fetch.
@@ -100,13 +100,13 @@ Open-Meteo returns parallel arrays of hourly predictions covering past days and 
 - **Portal URL:** https://data.gov.in/
 - **Documentation URL:** https://data.gov.in/developer-apis
 - **Licensing Policy:** National Data Sharing and Accessibility Policy (NDSAP) - Open Data License India
-- **Verification Status:** `UNVERIFIED` (Shipped as a disabled source with test fixtures only per Section 8.4 rule)
-- **Trust Level:** `official`
+- **Verification Status:** `UNVERIFIED` (Shipped as disabled candidate source with test fixtures only per Section 8.4 rule; `resource_id=None`, `is_enabled=False`, `trust_level=provider_model`, never marked official)
+- **Trust Level:** `provider_model` (until verifiably validated as official government publisher with authorized schema)
 - **Adapter Key:** `data_gov_in`
 
 ### 3.1 Authentication & Configuration
 - **Authentication:** Query parameter `api-key=<DATA_GOV_IN_API_KEY>`.
-- **Configuration Check:** Requires `DATA_GOV_IN_API_KEY` environment variable and `resource_id` in source config. If absent, `is_configured()` returns `False`.
+- **Configuration Check:** Requires `DATA_GOV_IN_API_KEY` environment variable and non-empty verified `resource_id` in source config. If absent or empty, `is_configured()` returns `False`.
 - **Base Endpoint:** `https://api.data.gov.in/resource/{resource_id}`
 - **Formats Supported:** `json`
 

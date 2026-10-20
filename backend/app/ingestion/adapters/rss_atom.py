@@ -12,7 +12,12 @@ from app.core.config import Settings
 from app.core.http_client import SafeHttpClient
 from app.core.logging import get_logger
 from app.db.models.data_sources import DataSource
-from app.ingestion.adapters.base import AdapterResult, BaseAdapter, TargetError
+from app.ingestion.adapters.base import (
+    AdapterResult,
+    BaseAdapter,
+    TargetError,
+    sanitize_error_text,
+)
 from app.ingestion.normalizers import NormalizedNewsItem
 
 logger = get_logger("app.ingestion.adapters.rss_atom")
@@ -60,18 +65,19 @@ class RssAtomAdapter(BaseAdapter):
             )
 
         # 1. Fetch raw bytes safely via SafeHttpClient (enforces SSRF protection & response size limits)
+        target_url = sanitize_error_text(feed_url)
         try:
             response = http_client.get(feed_url)
             response.raise_for_status()
             content_bytes = response.content
         except Exception as exc:
-            logger.error("rss_fetch_failed", feed_url=feed_url, error=str(exc))
+            logger.error("rss_fetch_failed", feed_url=target_url, error=str(exc))
             return AdapterResult(
                 errors=[
                     TargetError(
-                        target_key=feed_url,
+                        target_key=target_url,
                         error_code="http_fetch_error",
-                        message=f"Failed to fetch feed: {exc}"[:1000],
+                        message=sanitize_error_text(f"Failed to fetch feed: {exc}"),
                     )
                 ],
                 failed_count=1,
@@ -84,13 +90,13 @@ class RssAtomAdapter(BaseAdapter):
         errors: list[TargetError] = []
         if feed.bozo and not feed.entries:
             bozo_exc = str(getattr(feed, "bozo_exception", "Malformed feed structure"))
-            logger.error("rss_malformed_feed", feed_url=feed_url, error=bozo_exc)
+            logger.error("rss_malformed_feed", feed_url=target_url, error=bozo_exc)
             return AdapterResult(
                 errors=[
                     TargetError(
-                        target_key=feed_url,
+                        target_key=target_url,
                         error_code="feed_malformed",
-                        message=f"Malformed feed with no entries: {bozo_exc}"[:1000],
+                        message=sanitize_error_text(f"Malformed feed with no entries: {bozo_exc}"),
                     )
                 ],
                 failed_count=1,
@@ -101,9 +107,9 @@ class RssAtomAdapter(BaseAdapter):
             bozo_exc = str(getattr(feed, "bozo_exception", "XML warning"))
             errors.append(
                 TargetError(
-                    target_key=feed_url,
+                    target_key=target_url,
                     error_code="feed_parse_warning",
-                    message=f"Feed parsed with warning: {bozo_exc}"[:1000],
+                    message=sanitize_error_text(f"Feed parsed with warning: {bozo_exc}"),
                 )
             )
 

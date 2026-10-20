@@ -52,10 +52,14 @@ def test_seed_sources_idempotent(db_session: Session, monkeypatch):
 
     rss_imd = db_session.query(DataSource).filter_by(name="rss_imd_advisories").one()
     assert rss_imd.is_enabled is False
+    assert rss_imd.trust_level != "official"
+    assert rss_imd.config.get("feed_url") is None
     assert rss_imd.adapter_key == "rss"
 
     dgov = db_session.query(DataSource).filter_by(name="data_gov_in_realtime").one()
     assert dgov.is_enabled is False
+    assert dgov.trust_level != "official"
+    assert dgov.config.get("resource_id") is None
     assert dgov.adapter_key == "data_gov_in"
 
     # 2. Second run is idempotent
