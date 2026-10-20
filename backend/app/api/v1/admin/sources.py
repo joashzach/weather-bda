@@ -30,12 +30,12 @@ def list_sources(
 
 
 @router.patch(
-    "/{source_id}",
+    "/{id}",
     response_model=DataSourceAdminItem,
     summary="Update data source configuration, interval, or status",
 )
 def update_source(
-    source_id: int,
+    id: int,
     payload: DataSourceUpdatePayload,
     request: Request,
     db: Session = Depends(get_db),
@@ -45,7 +45,7 @@ def update_source(
     service = AdminService(db)
     ip_h = hash_ip(client_ip)
     return service.update_source(
-        source_id=source_id,
+        source_id=id,
         payload=payload,
         actor_user_id=current_user.id,
         ip_hash=ip_h,

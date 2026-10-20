@@ -212,6 +212,7 @@ def query_analytics_summary(
         period=PeriodSchema.model_validate({"from": from_time, "to": to_time}),
         weather=WeatherSummary(
             record_counts=WeatherRecordCounts(observation=obs_count, forecast=fc_count),
+            records_by_kind=WeatherRecordCounts(observation=obs_count, forecast=fc_count),
             locations_with_data=locations_with_data,
             temperature_c=TemperatureSummary(
                 min=t_min, mean_of_location_means=t_mean_of_means, max=t_max

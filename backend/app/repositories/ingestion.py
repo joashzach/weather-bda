@@ -126,6 +126,8 @@ class IngestionRunRepository:
         to_time: datetime | None = None,
         page: int = 1,
         page_size: int = 20,
+        limit: int | None = None,
+        offset: int | None = None,
     ) -> tuple[Sequence[IngestionRun], int]:
         """List ingestion runs with optional filtering and pagination."""
         base_query = select(IngestionRun).join(DataSource)
@@ -144,12 +146,13 @@ class IngestionRunRepository:
         total = self.db.execute(count_stmt).scalar() or 0
 
         # Paged query
-        offset = (page - 1) * page_size
+        eff_limit = limit if limit is not None else page_size
+        eff_offset = offset if offset is not None else (page - 1) * page_size
         paged_stmt = (
             base_query.options(joinedload(IngestionRun.source))
             .order_by(desc(IngestionRun.queued_at), desc(IngestionRun.id))
-            .offset(offset)
-            .limit(page_size)
+            .offset(eff_offset)
+            .limit(eff_limit)
         )
         runs = self.db.execute(paged_stmt).scalars().all()
         return runs, total

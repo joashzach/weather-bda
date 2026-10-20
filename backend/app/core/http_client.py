@@ -67,6 +67,26 @@ def validate_outbound_url(url: str) -> str:
         ip_str = addr_info[4][0]
         try:
             ip = ipaddress.ip_address(ip_str)
+
+            # Support RFC 6052 Well-Known NAT64 Prefix (64:ff9b::/96) used in DNS64/NAT64 networks
+            if isinstance(ip, ipaddress.IPv6Address) and ip in ipaddress.IPv6Network(
+                "64:ff9b::/96"
+            ):
+                embedded_v4 = ipaddress.IPv4Address(ip.packed[-4:])
+                if (
+                    embedded_v4.is_private
+                    or embedded_v4.is_loopback
+                    or embedded_v4.is_link_local
+                    or embedded_v4.is_multicast
+                    or embedded_v4.is_reserved
+                    or embedded_v4.is_unspecified
+                    or embedded_v4 in ipaddress.IPv4Network("169.254.0.0/16")
+                ):
+                    raise SSRFSecurityError(
+                        f"Host '{normalized_host}' resolved to forbidden NAT64 IP '{embedded_v4}'."
+                    )
+                continue
+
             if (
                 ip.is_private
                 or ip.is_loopback
@@ -150,11 +170,16 @@ class SafeHttpClient:
                         )
                     content_chunks.append(chunk)
 
-                # Return populated Response
+                # Return populated Response with clean headers (content is already decoded)
                 full_content = b"".join(content_chunks)
+                headers = response.headers.copy()
+                headers.pop("content-encoding", None)
+                headers.pop("transfer-encoding", None)
+                headers["content-length"] = str(len(full_content))
+
                 return httpx.Response(
                     status_code=response.status_code,
-                    headers=response.headers,
+                    headers=headers,
                     content=full_content,
                     request=response.request,
                 )

@@ -32,6 +32,10 @@ env/
 .env.*.local
 !.env.example
 
+# Logs
+*.log
+logs/
+
 # Testing & Quality
 .pytest_cache/
 .coverage

@@ -41,8 +41,11 @@ def reset_rate_limiter() -> Generator[None, None, None]:
 
 
 @pytest.fixture(autouse=True)
-def block_external_sockets(monkeypatch: pytest.MonkeyPatch) -> None:
-    """PRD Section 10 Rule: Block all outbound network sockets in tests except local database."""
+def block_external_sockets(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """PRD Section 10 Rule: Block all outbound network sockets in tests except local database, unless marked live."""
+    if request.node.get_closest_marker("live"):
+        return
+
     original_connect = socket.socket.connect
 
     def guarded_connect(self: socket.socket, address: Any) -> None:

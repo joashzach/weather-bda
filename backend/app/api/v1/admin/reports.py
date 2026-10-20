@@ -75,7 +75,7 @@ def list_pending_reports(
 
 
 @router.post(
-    "/{report_id}/review",
+    "/{id}/review",
     response_model=CitizenReportStaff,
     summary="Execute moderation transition review on a citizen report",
     description=(
@@ -84,31 +84,31 @@ def list_pending_reports(
     ),
 )
 def review_report(
-    report_id: uuid.UUID,
+    id: uuid.UUID,
     body: ReportReviewDecision,
     current_user: User = Depends(require_reviewer),
     db: Session = Depends(get_db),
 ) -> CitizenReportStaff:
     return CitizenReportService.review_report(
         db=db,
-        report_id=report_id,
+        report_id=id,
         body=body,
         reviewer=current_user,
     )
 
 
 @router.get(
-    "/{report_id}/reviews",
+    "/{id}/reviews",
     response_model=ReportReviewsResponse,
     summary="Inspect review history for a citizen report",
     description="Returns the full immutable review audit trail including reviewer identities and private notes.",
 )
 def list_reviews_for_report(
-    report_id: uuid.UUID,
+    id: uuid.UUID,
     current_user: User = Depends(require_reviewer),
     db: Session = Depends(get_db),
 ) -> ReportReviewsResponse:
     return CitizenReportService.list_reviews_for_report(
         db=db,
-        report_id=report_id,
+        report_id=id,
     )

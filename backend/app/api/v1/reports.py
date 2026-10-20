@@ -113,7 +113,7 @@ def list_reports(
 
 
 @router.get(
-    "/{report_id}",
+    "/{id}",
     response_model=CitizenReportPublic | CitizenReportStaff,
     summary="Retrieve a single citizen report by ID",
     description=(
@@ -123,7 +123,7 @@ def list_reports(
     ),
 )
 def get_report(
-    report_id: uuid.UUID,
+    id: uuid.UUID,
     x_tracking_token: str | None = Header(
         default=None,
         alias="X-Tracking-Token",
@@ -134,7 +134,7 @@ def get_report(
 ) -> CitizenReportPublic | CitizenReportStaff:
     return CitizenReportService.get_report_by_id(
         db=db,
-        report_id=report_id,
+        report_id=id,
         tracking_token=x_tracking_token,
         current_user=current_user,
     )

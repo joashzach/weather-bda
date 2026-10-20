@@ -2,7 +2,7 @@
 
 import re
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -53,6 +53,22 @@ def sanitize_value(val: Any) -> Any:
     return val
 
 
+def _compute_freshness(src: DataSource) -> str:
+    """Compute data source freshness enum ('fresh', 'stale', 'never', 'disabled')."""
+    if not src.is_enabled:
+        return "disabled"
+    if src.last_success_at is None:
+        return "never"
+    now = datetime.now(UTC)
+    last_success = (
+        src.last_success_at
+        if src.last_success_at.tzinfo
+        else src.last_success_at.replace(tzinfo=UTC)
+    )
+    diff_sec = (now - last_success).total_seconds()
+    return "fresh" if diff_sec <= (2 * src.interval_seconds) else "stale"
+
+
 class AdminService:
     def __init__(self, db: Session, settings: Settings | None = None) -> None:
         self.db = db
@@ -101,6 +117,7 @@ class AdminService:
                     is_enabled=src.is_enabled,
                     interval_seconds=src.interval_seconds,
                     configured=is_cfg,
+                    freshness=_compute_freshness(src),
                     attribution_text=src.attribution_text,
                     license_url=src.license_url,
                     homepage_url=src.homepage_url,
@@ -235,6 +252,7 @@ class AdminService:
             is_enabled=source.is_enabled,
             interval_seconds=source.interval_seconds,
             configured=is_cfg,
+            freshness=_compute_freshness(source),
             attribution_text=source.attribution_text,
             license_url=source.license_url,
             homepage_url=source.homepage_url,
@@ -307,6 +325,8 @@ class AdminService:
         run_status: str | None = None,
         from_time: datetime | None = None,
         to_time: datetime | None = None,
+        limit: int = 50,
+        offset: int = 0,
         page: int = 1,
         page_size: int = 20,
     ) -> IngestionRunListResponse:
@@ -316,8 +336,8 @@ class AdminService:
             status=run_status,
             from_time=from_time,
             to_time=to_time,
-            page=page,
-            page_size=page_size,
+            limit=limit,
+            offset=offset,
         )
 
         items = [
@@ -341,10 +361,14 @@ class AdminService:
             for r in runs
         ]
 
-        pages = (total + page_size - 1) // page_size if total > 0 else 1
+        pages = (total + limit - 1) // limit if total > 0 else 1
+        current_page = (offset // limit) + 1 if limit > 0 else 1
         return IngestionRunListResponse(
             items=items,
-            pagination=PaginationMeta(page=page, page_size=page_size, total=total, pages=pages),
+            total=total,
+            limit=limit,
+            offset=offset,
+            pagination=PaginationMeta(page=current_page, page_size=limit, total=total, pages=pages),
         )
 
     def get_ingestion_run(self, run_id: int) -> IngestionRunDetail:

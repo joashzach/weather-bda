@@ -41,6 +41,7 @@ class WeatherSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     record_counts: WeatherRecordCounts
+    records_by_kind: WeatherRecordCounts | None = None
     locations_with_data: int
     temperature_c: TemperatureSummary
     wind: WindSummary

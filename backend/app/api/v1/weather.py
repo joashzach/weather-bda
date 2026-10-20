@@ -76,13 +76,13 @@ def get_latest_weather(
 
 
 @router.get(
-    "/{observation_id}",
+    "/{id}",
     response_model=WeatherRecordPublic,
     summary="Get weather record by ID",
     description="Retrieve a single weather record by integer ID.",
 )
 def get_weather_by_id(
-    observation_id: int = Path(..., ge=1, description="Unique weather record ID"),
+    id: int = Path(..., ge=1, description="Unique weather record ID"),
     db: Session = Depends(get_db),
 ) -> WeatherRecordPublic:
-    return WeatherService.get_record(db=db, record_id=observation_id)
+    return WeatherService.get_record(db=db, record_id=id)

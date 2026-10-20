@@ -38,6 +38,7 @@ class DataSourceAdminItem(BaseModel):
     is_enabled: bool
     interval_seconds: int
     configured: bool
+    freshness: str = "never"
     attribution_text: str
     license_url: str | None = None
     homepage_url: str | None = None
@@ -92,4 +93,7 @@ class IngestionRunDetail(IngestionRunSummary):
 
 class IngestionRunListResponse(BaseModel):
     items: list[IngestionRunSummary]
-    pagination: PaginationMeta
+    total: int
+    limit: int
+    offset: int
+    pagination: PaginationMeta | None = None
