@@ -41,16 +41,27 @@ def test_seed_sources_idempotent(db_session: Session, monkeypatch):
     source_names = {s.name for s in sources}
     assert "open_meteo" in source_names
     assert "citizen_reports" in source_names
+    assert "rss_imd_advisories" in source_names
+    assert "data_gov_in_realtime" in source_names
+    assert len(sources) == 4
 
     open_meteo = db_session.query(DataSource).filter_by(name="open_meteo").one()
     assert open_meteo.adapter_key == "open_meteo"
     assert open_meteo.trust_level == "provider_model"
     assert "Open-Meteo.com" in open_meteo.attribution_text
 
+    rss_imd = db_session.query(DataSource).filter_by(name="rss_imd_advisories").one()
+    assert rss_imd.is_enabled is False
+    assert rss_imd.adapter_key == "rss"
+
+    dgov = db_session.query(DataSource).filter_by(name="data_gov_in_realtime").one()
+    assert dgov.is_enabled is False
+    assert dgov.adapter_key == "data_gov_in"
+
     # 2. Second run is idempotent
     exit_code2 = cmd_seed_sources(args)
     assert exit_code2 == 0
-    assert db_session.query(DataSource).count() == 2
+    assert db_session.query(DataSource).count() == 4
 
 
 def test_seed_locations_from_default_yaml(db_session: Session, monkeypatch):

@@ -152,6 +152,43 @@ def cmd_seed_sources(_args: argparse.Namespace) -> int:
             "homepage_url": None,
             "config": {},
         },
+        {
+            "name": "rss_imd_advisories",
+            "display_name": "IMD Weather Advisories (RSS)",
+            "source_type": "rss",
+            "adapter_key": "rss",
+            "trust_level": "news",
+            "is_enabled": False,
+            "interval_seconds": 3600,
+            "attribution_text": "Meteorological advisories from India Meteorological Department (IMD)",
+            "license_url": "https://mausam.imd.gov.in/",
+            "homepage_url": "https://mausam.imd.gov.in/",
+            "config": {
+                "feed_url": "https://mausam.imd.gov.in/backend/assets/rss/national_bulletin.xml",
+                "category": "advisory_feed",
+            },
+        },
+        {
+            "name": "data_gov_in_realtime",
+            "display_name": "data.gov.in Realtime Weather API",
+            "source_type": "open_dataset",
+            "adapter_key": "data_gov_in",
+            "trust_level": "official",
+            "is_enabled": False,
+            "interval_seconds": 3600,
+            "attribution_text": "Open Government Data (OGD) Platform India under National Data Sharing and Accessibility Policy (NDSAP)",
+            "license_url": "https://data.gov.in/sites/default/files/NDSAP.pdf",
+            "homepage_url": "https://data.gov.in/",
+            "config": {
+                "resource_id": "unverified_resource_id",
+                "field_map": {
+                    "station_name": "station",
+                    "valid_at": "timestamp",
+                    "temperature_c": "temp",
+                },
+                "location_match": {},
+            },
+        },
     ]
 
     with SessionLocal() as db:

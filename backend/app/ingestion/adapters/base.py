@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.core.config import Settings
 from app.core.http_client import SafeHttpClient
 from app.db.models.data_sources import DataSource
-from app.ingestion.normalizers import NormalizedWeatherRecord
+from app.ingestion.normalizers import NormalizedNewsItem, NormalizedWeatherRecord
 
 
 class TargetError(BaseModel):
@@ -23,6 +23,7 @@ class AdapterResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     records: list[NormalizedWeatherRecord] = Field(default_factory=list)
+    news_records: list[NormalizedNewsItem] = Field(default_factory=list)
     errors: list[TargetError] = Field(default_factory=list)
     fetched_count: int = 0
     failed_count: int = 0

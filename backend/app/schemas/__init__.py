@@ -23,6 +23,7 @@ from app.schemas.auth import (
 from app.schemas.common import ErrorDetail, ErrorResponse, PaginatedResponse
 from app.schemas.health import LivenessResponse, ReadinessResponse
 from app.schemas.locations import LocationListResponse, LocationPublic
+from app.schemas.news import NewsItemPublic, NewsSourceSummary
 from app.schemas.reports import (
     CitizenReportCreate,
     CitizenReportCreatedResponse,
@@ -70,6 +71,8 @@ __all__ = [
     "LocationsAnalyticsResponse",
     "LoginRequest",
     "MessageResponse",
+    "NewsItemPublic",
+    "NewsSourceSummary",
     "PaginatedResponse",
     "ReadinessResponse",
     "ReportReviewDecision",

@@ -12,6 +12,7 @@ from app.core.logging import get_logger
 from app.db.models.ingestion_runs import IngestionRun
 from app.ingestion.adapters import ADAPTER_REGISTRY
 from app.repositories.locations import LocationRepository
+from app.repositories.news import NewsRepository
 from app.repositories.sources import DataSourceRepository
 from app.repositories.weather import WeatherRepository
 
@@ -87,10 +88,20 @@ class IngestionPipeline:
                 with self.session_factory() as db_final:
                     return db_final.get(IngestionRun, run_id)
 
-        # 3. Retrieve targets
+        # 3. Retrieve targets according to source type
+        is_rss = source.source_type == "rss" or adapter_key == "rss"
+        is_data_gov = source.source_type == "open_dataset" or adapter_key == "data_gov_in"
+
         with self.session_factory() as db:
             location_repo = LocationRepository(db)
-            targets = list(location_repo.list_active())
+            active_locations = list(location_repo.list_active())
+
+        if is_rss:
+            target_batches = [[source.name]]
+        elif is_data_gov:
+            target_batches = [active_locations]
+        else:
+            target_batches = [[loc] for loc in active_locations]
 
         records_fetched = 0
         inserted_count = 0
@@ -99,12 +110,12 @@ class IngestionPipeline:
         failed_count = 0
         accumulated_errors: list[dict[str, str]] = []
 
-        # 4. Ingest each target location in its own isolated transaction
+        # 4. Ingest each target batch in its own isolated transaction
         with SafeHttpClient() as http_client:
-            for target in targets:
+            for target_batch in target_batches:
                 target_result = adapter.run(
                     source=source,
-                    targets=[target],
+                    targets=target_batch,
                     http_client=http_client,
                     settings=self.settings,
                 )
@@ -121,37 +132,63 @@ class IngestionPipeline:
                         }
                     )
 
-                if not target_result.records:
-                    continue
+                # Persist weather records if any
+                if target_result.records:
+                    target_key_name = getattr(target_batch[0], "slug", str(target_batch[0]))
+                    try:
+                        with self.session_factory() as target_db:
+                            weather_repo = WeatherRepository(target_db)
+                            records_dicts = [
+                                {**rec.model_dump(), "ingestion_run_id": run_id}
+                                for rec in target_result.records
+                            ]
+                            stats = weather_repo.bulk_upsert(records_dicts)
+                            target_db.commit()
 
-                # Persist in dedicated transaction for failure isolation
-                try:
-                    with self.session_factory() as target_db:
-                        weather_repo = WeatherRepository(target_db)
-                        records_dicts = [
-                            {**rec.model_dump(), "ingestion_run_id": run_id}
-                            for rec in target_result.records
-                        ]
-                        stats = weather_repo.bulk_upsert(records_dicts)
-                        target_db.commit()
+                            inserted_count += stats["inserted"]
+                            updated_count += stats["updated"]
+                            skipped_count += stats["skipped"]
+                    except Exception as e:
+                        logger.error(
+                            "weather_persistence_failed",
+                            target=target_key_name,
+                            error=str(e),
+                        )
+                        failed_count += len(target_result.records)
+                        accumulated_errors.append(
+                            {
+                                "target": target_key_name,
+                                "error_code": "db_persistence_error",
+                                "message": f"Failed to persist weather records: {e}"[:1000],
+                            }
+                        )
 
-                        inserted_count += stats["inserted"]
-                        updated_count += stats["updated"]
-                        skipped_count += stats["skipped"]
-                except Exception as e:
-                    logger.error(
-                        "target_persistence_failed",
-                        target=getattr(target, "slug", str(target)),
-                        error=str(e),
-                    )
-                    failed_count += len(target_result.records)
-                    accumulated_errors.append(
-                        {
-                            "target": getattr(target, "slug", str(target)),
-                            "error_code": "db_persistence_error",
-                            "message": f"Failed to persist records: {e}"[:1000],
-                        }
-                    )
+                # Persist news records if any
+                if target_result.news_records:
+                    try:
+                        with self.session_factory() as target_db:
+                            news_repo = NewsRepository(target_db)
+                            news_dicts = [rec.model_dump() for rec in target_result.news_records]
+                            stats = news_repo.bulk_upsert(source_id=source.id, items=news_dicts)
+                            target_db.commit()
+
+                            inserted_count += stats["inserted"]
+                            updated_count += stats["updated"]
+                            skipped_count += stats["skipped"]
+                    except Exception as e:
+                        logger.error(
+                            "news_persistence_failed",
+                            source=source.name,
+                            error=str(e),
+                        )
+                        failed_count += len(target_result.news_records)
+                        accumulated_errors.append(
+                            {
+                                "target": source.name,
+                                "error_code": "db_persistence_error",
+                                "message": f"Failed to persist news records: {e}"[:1000],
+                            }
+                        )
 
         # 5. Determine final run status
         saved_count = inserted_count + updated_count

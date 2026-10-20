@@ -65,3 +65,54 @@ Open-Meteo returns parallel arrays of hourly predictions covering past days and 
 - Tenacity retry on connection errors, timeouts, HTTP 429 (respecting `Retry-After`), and HTTP 5xx.
 - No retry on client 4xx errors (e.g. 400 Bad Request).
 - Maximum 3 attempts with exponential backoff and jitter.
+
+---
+
+## 2. RSS / Atom Syndication Feeds (IMD & Meteorological Feeds)
+
+- **Official Provider:** India Meteorological Department (IMD) / Ministry of Earth Sciences, Government of India
+- **Homepage:** https://mausam.imd.gov.in/
+- **Verification Status:** `UNVERIFIED` (Shipped as a disabled source with test fixtures only per Section 8.3 rule)
+- **Trust Level:** `news`
+- **Adapter Key:** `rss`
+
+### 2.1 Candidate Feed Specifications
+- **Candidate Endpoint:** `https://mausam.imd.gov.in/backend/assets/rss/national_bulletin.xml`
+- **Category Check:** `advisory_feed` or `news`
+- **Access Rule:** Bytes are retrieved strictly via SSRF-guarded HTTP client (`SafeHttpClient`). Never pass raw URL directly to `feedparser`.
+- **Parsing Cap:** Maximum 200 entries per fetch.
+
+### 2.2 Content Sanitization & Deduplication
+- **HTML Sanitization:** Strict tag stripping via `nh3.clean(tags=set())`, collapsing internal whitespace.
+- **Title Bounds:** Truncated to 500 characters.
+- **Summary Bounds:** Truncated to 2,000 characters.
+- **Link Protocol:** Strictly limited to `http://` or `https://` schemes up to 2,048 characters.
+- **Timestamp:** Extracted from `published_parsed` or `updated_parsed` converted to timezone-aware UTC datetime. Missing timestamps remain `NULL` (never faked with fetch time).
+- **Deduplication Key:** `SHA-256(guid | link | (title + published_at))`
+- **Content Hash:** `SHA-256(title + summary + url)`
+- **Data Integrity:** Stored exclusively in `news_items` table. Never converted into weather observations. `is_official` is derived solely from source trust level.
+
+---
+
+## 3. data.gov.in Open Government Data API
+
+- **Official Provider:** Open Government Data (OGD) Platform India, National Informatics Centre (NIC)
+- **Portal URL:** https://data.gov.in/
+- **Documentation URL:** https://data.gov.in/developer-apis
+- **Licensing Policy:** National Data Sharing and Accessibility Policy (NDSAP) - Open Data License India
+- **Verification Status:** `UNVERIFIED` (Shipped as a disabled source with test fixtures only per Section 8.4 rule)
+- **Trust Level:** `official`
+- **Adapter Key:** `data_gov_in`
+
+### 3.1 Authentication & Configuration
+- **Authentication:** Query parameter `api-key=<DATA_GOV_IN_API_KEY>`.
+- **Configuration Check:** Requires `DATA_GOV_IN_API_KEY` environment variable and `resource_id` in source config. If absent, `is_configured()` returns `False`.
+- **Base Endpoint:** `https://api.data.gov.in/resource/{resource_id}`
+- **Formats Supported:** `json`
+
+### 3.2 Field Mapping & Station Matching Rules
+- **Location Matching:** Provider station or district fields matched against platform location slugs via `config.location_match`. Unmatched rows are skipped with an audit counter, never guessed.
+- **Unit Normalization:** Provider units converted via `config.unit_conversions` (e.g. Kelvin to Celsius: `x - 273.15`).
+- **Observation Classification:** Record kind assigned as `observation`. Measurement basis set to `station` only when officially documented, otherwise `unknown`.
+- **Testing Guardrail:** Verified offline using recorded JSON fixture responses; no live API calls made.
+

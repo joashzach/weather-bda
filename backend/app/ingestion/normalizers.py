@@ -31,6 +31,20 @@ class NormalizedWeatherRecord(BaseModel):
     fetched_at: datetime
 
 
+class NormalizedNewsItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_id: int
+    dedupe_key: str = Field(min_length=64, max_length=64)
+    title: str = Field(max_length=500)
+    summary: str | None = Field(default=None, max_length=2000)
+    url: str = Field(max_length=2048)
+    published_at: datetime | None = None
+    fetched_at: datetime
+    category: str
+    content_hash: str = Field(min_length=64, max_length=64)
+
+
 class ValidationErrorItem(Exception):
     def __init__(self, message: str, field: str | None = None) -> None:
         super().__init__(message)

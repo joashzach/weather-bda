@@ -1,6 +1,7 @@
 """Repositories package export."""
 
 from app.repositories.locations import LocationRepository
+from app.repositories.news import NewsRepository
 from app.repositories.reports import CitizenReportRepository
 from app.repositories.sources import DataSourceRepository
 from app.repositories.users import UserRepository
@@ -10,6 +11,7 @@ __all__ = [
     "CitizenReportRepository",
     "DataSourceRepository",
     "LocationRepository",
+    "NewsRepository",
     "UserRepository",
     "WeatherRepository",
 ]

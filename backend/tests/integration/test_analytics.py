@@ -281,47 +281,64 @@ def test_analytics_summary_anonymous(client: TestClient, db_session: Session):
 
 
 def test_analytics_summary_reviewer_and_admin_views(client: TestClient, db_session: Session):
+    from app.core.security import create_access_token, hash_password
+
     data = _seed_analytics_fixture(db_session)
     now = data["now"]
     from_iso = (now - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
     to_iso = (now + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # 1. Test Reviewer Role: sees all report statuses, but ingestion is still None
+    # 1. Create real database-backed reviewer and admin users
     reviewer = User(
-        email="rev@example.com",
-        display_name="Reviewer",
+        email="rev_analytics@example.com",
+        display_name="Reviewer Analytics",
         role=UserRole.REVIEWER,
-        password_hash="dummy",
+        password_hash=hash_password("ReviewerPass123!"),
+        is_active=True,
+        token_version=0,
     )
-    app.dependency_overrides[get_optional_current_user] = lambda: reviewer
-    try:
-        resp = client.get(f"/api/v1/analytics/summary?from={from_iso}&to={to_iso}")
-        assert resp.status_code == 200
-        res = resp.json()
-        assert res["reports"]["total"] == 3
-        assert res["reports"]["by_status"]["verified"] == 1
-        assert res["reports"]["by_status"]["pending"] == 1
-        assert res["reports"]["by_status"]["rejected"] == 1
-        assert res["ingestion"] is None
+    admin = User(
+        email="admin_analytics@example.com",
+        display_name="Admin Analytics",
+        role=UserRole.ADMIN,
+        password_hash=hash_password("AdminPass123!"),
+        is_active=True,
+        token_version=0,
+    )
+    db_session.add_all([reviewer, admin])
+    db_session.commit()
+    db_session.refresh(reviewer)
+    db_session.refresh(admin)
 
-        # 2. Test Admin Role: sees report statuses AND ingestion stats
-        admin = User(
-            email="admin@example.com",
-            display_name="Admin",
-            role=UserRole.ADMIN,
-            password_hash="dummy",
-        )
-        app.dependency_overrides[get_optional_current_user] = lambda: admin
-        resp2 = client.get(f"/api/v1/analytics/summary?from={from_iso}&to={to_iso}")
-        assert resp2.status_code == 200
-        res2 = resp2.json()
-        assert res2["ingestion"] is not None
-        assert res2["ingestion"]["runs_by_status"]["succeeded"] == 1
-        assert res2["ingestion"]["runs_by_status"]["failed"] == 1
-        assert res2["ingestion"]["success_rate"] == 0.5
-        assert res2["ingestion"]["last_failure_at"] is not None
-    finally:
-        app.dependency_overrides.pop(get_optional_current_user, None)
+    reviewer_token = create_access_token(user_id=reviewer.id, role=reviewer.role, token_version=0)
+    admin_token = create_access_token(user_id=admin.id, role=admin.role, token_version=0)
+
+    # 2. Test Reviewer Role with real Bearer token: sees all report statuses, ingestion is None
+    resp = client.get(
+        f"/api/v1/analytics/summary?from={from_iso}&to={to_iso}",
+        headers={"Authorization": f"Bearer {reviewer_token}"},
+    )
+    assert resp.status_code == 200
+    res = resp.json()
+    assert res["reports"]["total"] == 3
+    assert res["reports"]["by_status"]["verified"] == 1
+    assert res["reports"]["by_status"]["pending"] == 1
+    assert res["reports"]["by_status"]["rejected"] == 1
+    assert res["ingestion"] is None
+
+    # 3. Test Admin Role with real Bearer token: sees all report statuses AND ingestion stats
+    resp2 = client.get(
+        f"/api/v1/analytics/summary?from={from_iso}&to={to_iso}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert resp2.status_code == 200
+    res2 = resp2.json()
+    assert res2["reports"]["total"] == 3
+    assert res2["ingestion"] is not None
+    assert res2["ingestion"]["runs_by_status"]["succeeded"] == 1
+    assert res2["ingestion"]["runs_by_status"]["failed"] == 1
+    assert res2["ingestion"]["success_rate"] == 0.5
+    assert res2["ingestion"]["last_failure_at"] is not None
 
 
 def test_analytics_timeseries_hourly_and_gap_fill(client: TestClient, db_session: Session):
