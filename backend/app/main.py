@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
+from app.api.v1 import api_v1_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger, request_id_ctx, user_id_ctx
 from app.core.rate_limit import limiter
@@ -99,6 +100,9 @@ def create_app() -> FastAPI:
 
     # Health router mounted at root
     app.include_router(health_router)
+
+    # API v1 routes mounted under /api/v1
+    app.include_router(api_v1_router)
 
     return app
 

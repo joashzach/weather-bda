@@ -121,6 +121,94 @@ def cmd_create_user(args: argparse.Namespace) -> int:
         return 0
 
 
+def cmd_seed_sources(_args: argparse.Namespace) -> int:
+    """Idempotently seed reference data_sources records per PRD Section 4.2."""
+    from app.repositories.sources import DataSourceRepository
+
+    sources_to_seed = [
+        {
+            "name": "open_meteo",
+            "display_name": "Open-Meteo Weather Forecast API",
+            "source_type": "weather_api",
+            "adapter_key": "open_meteo",
+            "trust_level": "provider_model",
+            "is_enabled": False,
+            "interval_seconds": 3600,
+            "attribution_text": "Weather data by Open-Meteo.com under CC BY 4.0",
+            "license_url": "https://creativecommons.org/licenses/by/4.0/",
+            "homepage_url": "https://open-meteo.com/",
+            "config": {"past_days": 2, "forecast_days": 7},
+        },
+        {
+            "name": "citizen_reports",
+            "display_name": "Citizen Reports Platform",
+            "source_type": "citizen",
+            "adapter_key": "citizen",
+            "trust_level": "citizen",
+            "is_enabled": True,
+            "interval_seconds": 3600,
+            "attribution_text": "Citizen weather reports",
+            "license_url": None,
+            "homepage_url": None,
+            "config": {},
+        },
+    ]
+
+    with SessionLocal() as db:
+        repo = DataSourceRepository(db)
+        for s in sources_to_seed:
+            source = repo.upsert(**s)
+            print(f"Seeded source: '{source.name}' (ID: {source.id}, enabled: {source.is_enabled})")
+        db.commit()
+
+    print("Data sources seeded successfully.")
+    return 0
+
+
+def cmd_seed_locations(args: argparse.Namespace) -> int:
+    """Idempotently seed locations from YAML configuration file per PRD Section 4.3."""
+    from pathlib import Path
+
+    import yaml
+
+    from app.repositories.locations import LocationRepository
+
+    file_path = Path(args.file)
+    if not file_path.is_file():
+        print(f"Error: Locations file not found at '{file_path}'.", file=sys.stderr)
+        return 1
+
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception as e:
+        print(f"Error reading YAML file: {e}", file=sys.stderr)
+        return 1
+
+    locations_data = data.get("locations", [])
+    if not locations_data:
+        print(f"Warning: No locations found in '{file_path}'.", file=sys.stderr)
+        return 0
+
+    with SessionLocal() as db:
+        repo = LocationRepository(db)
+        for loc in locations_data:
+            upserted = repo.upsert(
+                slug=loc["slug"],
+                name=loc["name"],
+                region=loc.get("region"),
+                country_code=loc.get("country_code", "IN"),
+                latitude=float(loc["latitude"]),
+                longitude=float(loc["longitude"]),
+                is_active=loc.get("is_active", True),
+            )
+            print(f"Seeded location: '{upserted.slug}' ({upserted.name}) - ID: {upserted.id}")
+        db.commit()
+
+    print(f"Successfully seeded {len(locations_data)} location(s).")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Weather BDA Backend CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -152,6 +240,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--password-stdin", action="store_true", help="Read password from stdin"
     )
     user_parser.set_defaults(func=cmd_create_user)
+
+    # seed-sources
+    sources_parser = subparsers.add_parser(
+        "seed-sources", help="Seed default reference data sources"
+    )
+    sources_parser.set_defaults(func=cmd_seed_sources)
+
+    # seed-locations
+    loc_parser = subparsers.add_parser("seed-locations", help="Seed locations from YAML file")
+    loc_parser.add_argument(
+        "--file", default="config/locations.yaml", help="Path to locations YAML configuration file"
+    )
+    loc_parser.set_defaults(func=cmd_seed_locations)
 
     return parser
 
