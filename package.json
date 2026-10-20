@@ -1,0 +1,18 @@
+{
+  "name": "monsoon-weather-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "check": "node --check dist/app.js && node --check dist/api.js && node --check dist/data.js",
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "esbuild": "0.28.2",
+    "gsap": "3.15.0",
+    "motion": "14.4.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}
