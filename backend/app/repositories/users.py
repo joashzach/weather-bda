@@ -44,3 +44,35 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    def record_failed_login(
+        self,
+        user: User,
+        max_failures: int = 5,
+        lockout_minutes: int = 15,
+    ) -> None:
+        from datetime import UTC, datetime, timedelta
+
+        user.failed_login_count += 1
+        if user.failed_login_count >= max_failures:
+            user.locked_until = datetime.now(UTC) + timedelta(minutes=lockout_minutes)
+        self.db.commit()
+
+    def record_successful_login(self, user: User) -> None:
+        from datetime import UTC, datetime
+
+        user.failed_login_count = 0
+        user.locked_until = None
+        user.last_login_at = datetime.now(UTC)
+        self.db.commit()
+
+    def update_password(self, user: User, new_password_hash: str) -> None:
+        """Update password hash and increment token_version to invalidate prior JWTs."""
+        user.password_hash = new_password_hash
+        user.token_version += 1
+        self.db.commit()
+
+    def update_password_hash_only(self, user: User, new_password_hash: str) -> None:
+        """Update password hash during rehash without bumping token_version."""
+        user.password_hash = new_password_hash
+        self.db.commit()

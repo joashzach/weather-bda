@@ -596,9 +596,7 @@ def test_analytics_edge_cases_and_error_handling(client: TestClient, db_session:
     assert resp.json()["error"]["code"] == "validation_error"
 
     # 8. Locations: sort by -record_count and coverage_pct
-    resp = client.get(
-        f"/api/v1/analytics/locations?sort=-record_count&from={from_iso}&to={to_iso}"
-    )
+    resp = client.get(f"/api/v1/analytics/locations?sort=-record_count&from={from_iso}&to={to_iso}")
     assert resp.status_code == 200
     resp_cov = client.get(
         f"/api/v1/analytics/locations?sort=coverage_pct&from={from_iso}&to={to_iso}"

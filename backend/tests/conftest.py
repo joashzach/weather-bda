@@ -10,9 +10,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
+from app.core.rate_limit import limiter
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+
+# PRD Section 6.3 & 10: Rate limiting disabled strictly in test suite
+limiter.enabled = False
 
 settings = get_settings()
 

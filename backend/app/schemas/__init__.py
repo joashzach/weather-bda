@@ -14,6 +14,12 @@ from app.schemas.analytics import (
     TimeseriesSourceItem,
     TimeseriesTrend,
 )
+from app.schemas.auth import (
+    ChangePasswordRequest,
+    LoginRequest,
+    MessageResponse,
+    TokenResponse,
+)
 from app.schemas.common import ErrorDetail, ErrorResponse, PaginatedResponse
 from app.schemas.health import LivenessResponse, ReadinessResponse
 from app.schemas.locations import LocationListResponse, LocationPublic
@@ -32,6 +38,7 @@ __all__ = [
     "AnomaliesResponse",
     "AnomalyBaseline",
     "AnomalyItem",
+    "ChangePasswordRequest",
     "ErrorDetail",
     "ErrorResponse",
     "EventAnalyticsItem",
@@ -42,6 +49,8 @@ __all__ = [
     "LocationListResponse",
     "LocationPublic",
     "LocationsAnalyticsResponse",
+    "LoginRequest",
+    "MessageResponse",
     "PaginatedResponse",
     "ReadinessResponse",
     "TimeseriesBucket",
@@ -49,6 +58,7 @@ __all__ = [
     "TimeseriesResponse",
     "TimeseriesSourceItem",
     "TimeseriesTrend",
+    "TokenResponse",
     "UserPublic",
     "WeatherLatestResponse",
     "WeatherMeasurements",
