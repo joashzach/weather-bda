@@ -1,0 +1,41 @@
+# Default curated locations for weather data collection
+locations:
+  - slug: "mumbai"
+    name: "Mumbai"
+    region: "Maharashtra"
+    country_code: "IN"
+    latitude: 19.07600
+    longitude: 72.87770
+    is_active: true
+
+  - slug: "delhi"
+    name: "Delhi"
+    region: "Delhi"
+    country_code: "IN"
+    latitude: 28.61390
+    longitude: 77.20900
+    is_active: true
+
+  - slug: "bengaluru"
+    name: "Bengaluru"
+    region: "Karnataka"
+    country_code: "IN"
+    latitude: 12.97160
+    longitude: 77.59460
+    is_active: true
+
+  - slug: "chennai"
+    name: "Chennai"
+    region: "Tamil Nadu"
+    country_code: "IN"
+    latitude: 13.08270
+    longitude: 80.27070
+    is_active: true
+
+  - slug: "kolkata"
+    name: "Kolkata"
+    region: "West Bengal"
+    country_code: "IN"
+    latitude: 22.57260
+    longitude: 88.36390
+    is_active: true
