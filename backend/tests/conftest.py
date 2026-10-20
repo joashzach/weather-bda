@@ -33,6 +33,14 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 
 
 @pytest.fixture(autouse=True)
+def reset_rate_limiter() -> Generator[None, None, None]:
+    """Ensure rate limiter remains disabled by default during test execution."""
+    limiter.enabled = False
+    yield
+    limiter.enabled = False
+
+
+@pytest.fixture(autouse=True)
 def block_external_sockets(monkeypatch: pytest.MonkeyPatch) -> None:
     """PRD Section 10 Rule: Block all outbound network sockets in tests except local database."""
     original_connect = socket.socket.connect

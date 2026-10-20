@@ -23,6 +23,18 @@ from app.schemas.auth import (
 from app.schemas.common import ErrorDetail, ErrorResponse, PaginatedResponse
 from app.schemas.health import LivenessResponse, ReadinessResponse
 from app.schemas.locations import LocationListResponse, LocationPublic
+from app.schemas.reports import (
+    CitizenReportCreate,
+    CitizenReportCreatedResponse,
+    CitizenReportPublic,
+    CitizenReportStaff,
+    EvidenceCreate,
+    EvidencePublic,
+    EvidenceStaff,
+    ReportReviewDecision,
+    ReportReviewItem,
+    ReportReviewsResponse,
+)
 from app.schemas.users import UserPublic
 from app.schemas.weather import (
     WeatherLatestResponse,
@@ -39,11 +51,18 @@ __all__ = [
     "AnomalyBaseline",
     "AnomalyItem",
     "ChangePasswordRequest",
+    "CitizenReportCreate",
+    "CitizenReportCreatedResponse",
+    "CitizenReportPublic",
+    "CitizenReportStaff",
     "ErrorDetail",
     "ErrorResponse",
     "EventAnalyticsItem",
     "EventAnalyticsResponse",
     "EventAnalyticsTotals",
+    "EvidenceCreate",
+    "EvidencePublic",
+    "EvidenceStaff",
     "LivenessResponse",
     "LocationAnalyticsItem",
     "LocationListResponse",
@@ -53,6 +72,9 @@ __all__ = [
     "MessageResponse",
     "PaginatedResponse",
     "ReadinessResponse",
+    "ReportReviewDecision",
+    "ReportReviewItem",
+    "ReportReviewsResponse",
     "TimeseriesBucket",
     "TimeseriesLocation",
     "TimeseriesResponse",

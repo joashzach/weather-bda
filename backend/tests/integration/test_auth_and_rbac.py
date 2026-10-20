@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.enums import EnvironmentType
 from app.core.logging import redact_sensitive_data
 from app.core.rate_limit import limiter
 from app.core.security import create_access_token, hash_password
@@ -277,7 +276,7 @@ def test_auth_rate_limiting_login(client: TestClient):
         idx = status_codes.index(429)
         assert idx <= 6
     finally:
-        limiter.enabled = get_settings().ENVIRONMENT != EnvironmentType.TEST
+        limiter.enabled = False
 
 
 def test_openapi_admin_routes_security_enforcement(client: TestClient):
@@ -393,7 +392,6 @@ def test_deps_token_edge_cases(db_session: Session):
     from fastapi import HTTPException
 
     from app.api.deps import _authenticate_token, get_optional_current_user
-    from app.core.config import get_settings
 
     settings = get_settings()
     users = _seed_auth_users(db_session)
