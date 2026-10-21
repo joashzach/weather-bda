@@ -1,5 +1,7 @@
+
 """Generic single-database configuration for Alembic migrations."""
 
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
@@ -19,11 +21,11 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    """Get the database URL, preferring an explicitly configured Alembic URL."""
-    configured_url = config.get_main_option("sqlalchemy.url", "")
+    """Get the database URL from the environment or application settings."""
+    database_url = os.environ.get("DATABASE_URL")
 
-    if configured_url:
-        return configured_url
+    if database_url:
+        return database_url
 
     return get_settings().DATABASE_URL
 
