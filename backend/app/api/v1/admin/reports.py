@@ -1,3 +1,4 @@
+from app.schemas.common import paginate_collection
 """Admin moderation endpoints for citizen reports queue, state transitions, and review history."""
 
 import uuid
@@ -106,9 +107,12 @@ def review_report(
 def list_reviews_for_report(
     id: uuid.UUID,
     current_user: User = Depends(require_reviewer),
+    limit: int | None = Query(None, ge=1, le=200, description="Optional page size; clients use 50. Omit for the complete legacy response."),
+    offset: int = Query(0, ge=0, description="Page offset"),
     db: Session = Depends(get_db),
 ) -> ReportReviewsResponse:
-    return CitizenReportService.list_reviews_for_report(
+    result = CitizenReportService.list_reviews_for_report(
         db=db,
         report_id=id,
     )
+    return paginate_collection(result, limit, offset)

@@ -31,3 +31,20 @@ class PaginatedResponse(BaseModel, Generic[T]):
     limit: int
     offset: int
     model_config = ConfigDict(extra="forbid")
+
+
+class CollectionResponse(BaseModel):
+    """Additive paging metadata; omitted limit preserves existing full-response clients."""
+    total: int | None = None
+    limit: int | None = None
+    offset: int = 0
+
+
+def paginate_collection(response: CollectionResponse, limit: int | None, offset: int):
+    total = len(response.items)
+    if limit is None:
+        return response.model_copy(update={"total": total, "limit": None, "offset": 0})
+    return response.model_copy(update={
+        "items": response.items[offset:offset + limit],
+        "total": total, "limit": limit, "offset": offset,
+    })

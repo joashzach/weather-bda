@@ -91,7 +91,19 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RateLimitExceeded)
     async def rate_limit_handler(_request: Request, exc: RateLimitExceeded) -> JSONResponse:
-        headers = {"Retry-After": "60"}
+        import math
+        import time
+        from app.core.rate_limit import limiter
+
+        # Report the window that actually rejected this request, including hourly limits.
+        current_limit = getattr(_request.state, "view_rate_limit", None)
+        retry_after = exc.limit.limit.get_expiry()
+        if current_limit is not None:
+            reset_at, _remaining = limiter.limiter.get_window_stats(
+                current_limit[0], *current_limit[1]
+            )
+            retry_after = max(1, math.ceil(reset_at - time.time()) + 1)
+        headers = {"Retry-After": str(retry_after)}
         return create_error_response(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             message="Rate limit exceeded. Please retry after some time.",

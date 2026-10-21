@@ -1,3 +1,4 @@
+from app.schemas.common import CollectionResponse
 """Pydantic schemas for citizen weather/disaster reports, evidence, and moderation reviews."""
 
 import uuid
@@ -138,6 +139,6 @@ class ReportReviewItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ReportReviewsResponse(BaseModel):
+class ReportReviewsResponse(CollectionResponse):
     items: list[ReportReviewItem]
     model_config = ConfigDict(extra="forbid")

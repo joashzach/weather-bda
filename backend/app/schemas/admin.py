@@ -1,3 +1,4 @@
+from app.schemas.common import CollectionResponse
 """Admin schemas for source management, manual ingestion triggers, and run tracking."""
 
 import uuid
@@ -48,7 +49,7 @@ class DataSourceAdminItem(BaseModel):
     last_run: LastRunSummary | None = None
 
 
-class DataSourceListResponse(BaseModel):
+class DataSourceListResponse(CollectionResponse):
     items: list[DataSourceAdminItem]
 
 

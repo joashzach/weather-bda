@@ -179,6 +179,9 @@ def query_analytics_summary(
                 trust_level=s.trust_level,
                 freshness=freshness,
                 last_success_at=s.last_success_at,
+                attribution_text=s.attribution_text,
+                license_url=s.license_url,
+                homepage_url=s.homepage_url,
             )
         )
 

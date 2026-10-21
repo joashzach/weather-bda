@@ -1,0 +1,1 @@
+export const events = {heavy_rain:'Rainfall',storm:'Thunderstorm',flood:'Flooding',heatwave:'Heatwave',fog:'Fog',other:'Other',cyclone:'Cyclone',lightning:'Lightning',cold_wave:'Cold wave',drought:'Drought',landslide:'Landslide',hail:'Hail'};

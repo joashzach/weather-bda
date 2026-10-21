@@ -1,6 +1,7 @@
+from app.schemas.common import paginate_collection
 """Admin API endpoints for managing data sources."""
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin
@@ -22,11 +23,14 @@ router = APIRouter(prefix="/sources", tags=["Admin Sources"])
     summary="List all data sources with configuration status and last run summary",
 )
 def list_sources(
+    limit: int | None = Query(None, ge=1, le=200, description="Optional page size; clients use 50. Omit for the complete legacy response."),
+    offset: int = Query(0, ge=0, description="Page offset"),
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_admin),
 ) -> DataSourceListResponse:
     service = AdminService(db)
-    return service.list_sources()
+    result = service.list_sources()
+    return paginate_collection(result, limit, offset)
 
 
 @router.patch(

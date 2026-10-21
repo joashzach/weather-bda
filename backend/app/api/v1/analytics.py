@@ -1,3 +1,4 @@
+from app.schemas.common import paginate_collection
 """Analytics REST API endpoints conforming to PRD Section 9."""
 
 from datetime import datetime
@@ -114,16 +115,19 @@ def get_analytics_locations(
         "name",
         description="Sorting field: 'name', '-name', 'record_count', '-record_count', 'coverage_pct', '-coverage_pct'",
     ),
+    limit: int | None = Query(None, ge=1, le=200, description="Optional page size; clients use 50. Omit for the complete legacy response."),
+    offset: int = Query(0, ge=0, description="Page offset"),
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_current_user),
 ) -> LocationsAnalyticsResponse:
-    return AnalyticsService.get_locations(
+    result = AnalyticsService.get_locations(
         db=db,
         from_time=from_time,
         to_time=to_time,
         sort=sort,
         current_user=current_user,
     )
+    return paginate_collection(result, limit, offset)
 
 
 @router.get(
@@ -148,10 +152,12 @@ def get_analytics_events(
         None,
         description="Optional filter by status (staff only; anonymous requests restricted to verified)",
     ),
+    limit: int | None = Query(None, ge=1, le=200, description="Optional page size; clients use 50. Omit for the complete legacy response."),
+    offset: int = Query(0, ge=0, description="Page offset"),
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_current_user),
 ) -> EventAnalyticsResponse:
-    return AnalyticsService.get_events(
+    result = AnalyticsService.get_events(
         db=db,
         from_time=from_time,
         to_time=to_time,
@@ -161,6 +167,7 @@ def get_analytics_events(
         status_filter=status,
         current_user=current_user,
     )
+    return paginate_collection(result, limit, offset)
 
 
 @router.get(
@@ -187,9 +194,11 @@ def get_analytics_anomalies(
     threshold: float = Query(
         3.5, gt=0, description="Modified z-score threshold for anomaly flag (default: 3.5)"
     ),
+    limit: int | None = Query(None, ge=1, le=200, description="Optional page size; clients use 50. Omit for the complete legacy response."),
+    offset: int = Query(0, ge=0, description="Page offset"),
     db: Session = Depends(get_db),
 ) -> AnomaliesResponse:
-    return AnalyticsService.get_anomalies(
+    result = AnalyticsService.get_anomalies(
         db=db,
         location_id=location_id,
         metric=metric,
@@ -198,3 +207,4 @@ def get_analytics_anomalies(
         baseline_days=baseline_days,
         threshold=threshold,
     )
+    return paginate_collection(result, limit, offset)

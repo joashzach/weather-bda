@@ -1,0 +1,20 @@
+.p1-weather-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; }
+.p1-weather-grid .settings { padding: 16px; border: 1px solid var(--line); }
+.p1-weather-grid dl { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 16px 0; }
+.p1-weather-grid dd { margin: 0; }
+.p1-source { padding: 0 24px 24px; border-bottom: 1px solid var(--line); }
+.p1-source details { margin-top: 12px; }
+.p1-source summary { cursor: pointer; padding: 8px 0; }
+.p1-source .p0-form { margin-top: 12px; }
+.p1-source small[data-field] { color: var(--red); }
+.p1-state { padding: 28px; }
+.p1-state button { margin-top: 12px; }
+.p1-source p, .p1-weather-grid p, .p1-weather-grid dd { overflow-wrap: anywhere; }
+.metrics:has(article:nth-child(5)) { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+@media (max-width:700px) { .p1-source { padding: 0 16px 16px; } .p1-weather-grid { grid-template-columns: 1fr; } }
+
+.p1-source [hidden], #detail [hidden], #p0-content [hidden] { display: none !important; }
+
+.metrics[aria-label="Weather summary"] article:first-child small { visibility: visible; }
+.metrics[aria-label="Weather summary"]:has(article:nth-child(6)) { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 32px; }
+@media (max-width: 700px) { .metrics[aria-label="Weather summary"], .metrics[aria-label="Weather summary"]:has(article:nth-child(6)) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 0; } }

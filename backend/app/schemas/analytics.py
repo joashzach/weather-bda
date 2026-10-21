@@ -1,3 +1,4 @@
+from app.schemas.common import CollectionResponse
 """Analytics response and query schemas conforming to PRD Section 9."""
 
 from datetime import datetime
@@ -63,6 +64,9 @@ class SourceSummaryItem(BaseModel):
     trust_level: str
     freshness: str
     last_success_at: datetime | None = None
+    attribution_text: str | None = None
+    license_url: str | None = None
+    homepage_url: str | None = None
 
 
 class IngestionSummary(BaseModel):
@@ -151,7 +155,7 @@ class LocationAnalyticsItem(BaseModel):
     report_counts: dict[str, int]
 
 
-class LocationsAnalyticsResponse(BaseModel):
+class LocationsAnalyticsResponse(CollectionResponse):
     model_config = ConfigDict(extra="forbid")
 
     items: list[LocationAnalyticsItem]
@@ -176,7 +180,7 @@ class EventAnalyticsTotals(BaseModel):
     rejected: int | None = None
 
 
-class EventAnalyticsResponse(BaseModel):
+class EventAnalyticsResponse(CollectionResponse):
     model_config = ConfigDict(extra="forbid")
 
     group_by: str
@@ -213,7 +217,7 @@ class AnomalyItem(BaseModel):
     disclaimer: str = "Statistical flag only. Not an official warning."
 
 
-class AnomaliesResponse(BaseModel):
+class AnomaliesResponse(CollectionResponse):
     model_config = ConfigDict(extra="forbid")
 
     location: TimeseriesLocation
