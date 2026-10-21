@@ -1,4 +1,3 @@
-
 """Generic single-database configuration for Alembic migrations."""
 
 import os
