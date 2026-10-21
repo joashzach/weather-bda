@@ -67,6 +67,43 @@ def test_ssrf_rejects_loopback_ip_resolution(monkeypatch: pytest.MonkeyPatch) ->
     assert "resolved to forbidden IP" in str(exc.value)
 
 
+def test_ssrf_rejects_nat64_wrapped_private_and_loopback_ips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify that RFC 6052 NAT64 prefixes wrapping private, loopback, or metadata IPv4 are blocked."""
+    forbidden_nat64_ips = [
+        "64:ff9b::10.0.0.1",  # RFC 1918 Private
+        "64:ff9b::172.16.0.1",  # RFC 1918 Private
+        "64:ff9b::192.168.1.1",  # RFC 1918 Private
+        "64:ff9b::127.0.0.1",  # Loopback
+        "64:ff9b::169.254.169.254",  # AWS/Cloud Metadata Link-Local
+    ]
+
+    for forbidden_ip in forbidden_nat64_ips:
+
+        def mock_dns(host: str, port: int, ip=forbidden_ip) -> list:
+            return [(socket.AF_INET6, socket.SOCK_STREAM, 6, "", (ip, 443, 0, 0))]
+
+        monkeypatch.setattr(socket, "getaddrinfo", mock_dns)
+
+        with pytest.raises(SSRFSecurityError) as exc:
+            validate_outbound_url("https://api.open-meteo.com/v1/forecast")
+        assert "forbidden NAT64" in str(exc.value) or "forbidden IP" in str(exc.value)
+
+
+def test_ssrf_allows_nat64_wrapped_public_ipv4(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that RFC 6052 NAT64 prefixes wrapping legitimate public IPv4 are permitted."""
+    public_nat64_ip = "64:ff9b::93.184.216.34"
+
+    def mock_dns(host: str, port: int) -> list:
+        return [(socket.AF_INET6, socket.SOCK_STREAM, 6, "", (public_nat64_ip, 443, 0, 0))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", mock_dns)
+
+    url = validate_outbound_url("https://api.open-meteo.com/v1/forecast")
+    assert url == "https://api.open-meteo.com/v1/forecast"
+
+
 def test_safe_http_client_success(monkeypatch: pytest.MonkeyPatch) -> None:
     # Allow mock DNS resolution
     def mock_dns(host: str, port: int) -> list:
