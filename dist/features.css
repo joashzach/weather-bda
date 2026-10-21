@@ -1,0 +1,27 @@
+.p0-panel { padding-bottom: 24px; }
+.p0-panel > :not(.panel-head) { margin-left: 24px; margin-right: 24px; }
+.p0-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding: 12px 0 24px; }
+.p0-form .p0-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.p0-form input:not([type=checkbox]), .p0-form select, .p0-form textarea { width: 100%; box-sizing: border-box; padding: 11px 12px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.p0-form textarea { resize: vertical; }
+.p0-form small[data-error] { color: var(--red); }
+.p0-form > p, .p0-evidence, .p0-form > .review-actions { grid-column: 1 / -1; }
+.p0-form button { justify-self: start; align-self: end; }
+.p0-form fieldset { min-width: 0; border: 1px solid var(--line); padding: 16px; }
+.p0-evidence-row { display: grid; grid-template-columns: 1fr 2fr 2fr auto; align-items: end; gap: 12px; padding: 12px 0; }
+.p0-filters { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.p0-token { overflow-wrap: anywhere; user-select: all; }
+.p0-chart { width: 100%; height: auto; max-height: 360px; overflow: hidden; margin: 20px 0; }
+.p0-trendline { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 6 5; }
+.p0-json { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+#p0-content small { display: block; }
+#p0-content .table-scroll { margin-top: 16px; }
+#p0-content dl { display: grid; grid-template-columns: minmax(100px, 1fr) 2fr; gap: 10px; }
+#p0-content dd { margin: 0; overflow-wrap: anywhere; }
+#p0-content button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 700px) { .p0-form, .p0-evidence-row { grid-template-columns: 1fr; } .p0-panel > :not(.panel-head) { margin-left: 16px; margin-right: 16px; } }
+
+/* Keep added entries in the existing navigation row, with horizontal scrolling. */
+.sidebar .p0-navigation { display: flex; align-items: center; min-width: 0; flex: 1; overflow-x: auto; scrollbar-width: thin; gap: 4px; }
+.sidebar .p0-navigation nav { flex-shrink: 0; margin: 0; }
+.sidebar .brand, .sidebar .sidebar-bottom { flex-shrink: 0; }

@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
-    "check": "node --check dist/app.js && node --check dist/api.js && node --check dist/data.js",
-    "build": "node build.mjs"
+    "check": "node --check dist/app.js && node --check dist/api.js && node --check dist/data.js && node --check dist/features.js && node --check dist/config.js && node --check dist/p1.js && node --check dist/p2.js && node --check dist/p3.js",
+    "build": "node build.mjs",
+    "lint": "eslint dist/app.js dist/api.js dist/data.js dist/features.js dist/config.js dist/p1.js dist/p2.js dist/p3.js"
   },
   "dependencies": {
     "esbuild": "0.28.2",
@@ -14,5 +15,10 @@
     "motion": "14.4.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0"
   }
 }
