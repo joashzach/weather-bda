@@ -165,16 +165,70 @@ class CitizenReportRepository:
         offset: int = 0,
     ) -> tuple[list[CitizenReport], int]:
         """Query moderation queue (pending reports) ordered oldest first by default."""
-        return self.list_reports(
-            status_filter="pending",
-            event_type=event_type,
-            location_id=location_id,
-            from_time=from_time,
-            to_time=to_time,
-            sort=sort,
-            limit=limit,
-            offset=offset,
+        query = (
+            select(CitizenReport)
+            .options(
+                joinedload(CitizenReport.location),
+                joinedload(CitizenReport.reviewer),
+            )
+            .where(CitizenReport.status == "pending")
         )
+        count_query = (
+            select(func.count()).select_from(CitizenReport).where(CitizenReport.status == "pending")
+        )
+
+        if event_type:
+            query = query.where(CitizenReport.event_type == event_type)
+            count_query = count_query.where(CitizenReport.event_type == event_type)
+
+        if location_id is not None:
+            query = query.where(CitizenReport.location_id == location_id)
+            count_query = count_query.where(CitizenReport.location_id == location_id)
+
+        if from_time:
+            query = query.where(CitizenReport.submitted_at >= from_time)
+            count_query = count_query.where(CitizenReport.submitted_at >= from_time)
+
+        if to_time:
+            query = query.where(CitizenReport.submitted_at <= to_time)
+            count_query = count_query.where(CitizenReport.submitted_at <= to_time)
+
+        total = self.db.execute(count_query).scalar_one() or 0
+
+        # Sort mapping for pending moderation queue: oldest first by default (submitted_at ASC)
+        if sort == "submitted_at":
+            query = query.order_by(
+                CitizenReport.submitted_at.asc(),
+                CitizenReport.created_at.asc(),
+                CitizenReport.id.asc(),
+            )
+        elif sort == "-submitted_at":
+            query = query.order_by(
+                CitizenReport.submitted_at.desc(),
+                CitizenReport.created_at.desc(),
+                CitizenReport.id.desc(),
+            )
+        elif sort == "event_time":
+            query = query.order_by(
+                CitizenReport.event_time.asc(),
+                CitizenReport.submitted_at.asc(),
+                CitizenReport.id.asc(),
+            )
+        elif sort == "-event_time":
+            query = query.order_by(
+                CitizenReport.event_time.desc(),
+                CitizenReport.submitted_at.desc(),
+                CitizenReport.id.desc(),
+            )
+        else:
+            query = query.order_by(
+                CitizenReport.submitted_at.asc(),
+                CitizenReport.created_at.asc(),
+                CitizenReport.id.asc(),
+            )
+
+        items = self.db.execute(query.limit(limit).offset(offset)).scalars().all()
+        return list(items), total
 
     def list_reviews_for_report(self, report_id: uuid.UUID) -> list[ReportReview]:
         """Retrieve review history for a report with reviewer user eager loaded."""

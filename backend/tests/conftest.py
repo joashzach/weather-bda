@@ -61,7 +61,7 @@ def block_external_sockets(request: pytest.FixtureRequest, monkeypatch: pytest.M
     monkeypatch.setattr(socket.socket, "connect", guarded_connect)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def setup_test_db() -> Generator[None, None, None]:
     """Create all tables in test database once per session using alembic upgrade head per PRD Section 10."""
     from pathlib import Path

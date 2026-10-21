@@ -34,7 +34,10 @@ def test_health_ready_endpoint_database_failure(monkeypatch) -> None:
         assert "Database connection down" not in response.text
 
 
-def test_health_ready_endpoint_success() -> None:
+def test_health_ready_endpoint_success(monkeypatch) -> None:
+    from tests.conftest import test_engine
+
+    monkeypatch.setattr("app.api.health.engine", test_engine)
     with TestClient(app) as test_client:
         response = test_client.get("/health/ready")
         assert response.status_code == status.HTTP_200_OK

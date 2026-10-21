@@ -20,9 +20,12 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    """Get the database URL from the environment or application settings."""
-    database_url = os.environ.get("DATABASE_URL")
+    """Get the database URL, preferring an explicitly configured Alembic URL, then environment, then app settings."""
+    configured_url = config.get_main_option("sqlalchemy.url", "")
+    if configured_url:
+        return configured_url
 
+    database_url = os.environ.get("DATABASE_URL")
     if database_url:
         return database_url
 
